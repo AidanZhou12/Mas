@@ -26,6 +26,10 @@ function CreateLeague() {
                         navigate('/unready', { state: { teamName, leagueID } });
                     }
                     catch (err) {
+                        if (err.status === 403) {
+                            navigate('/season-started', { replace: true });
+                            return;
+                        }
                         setError(err.message);
                     }
                 }}>

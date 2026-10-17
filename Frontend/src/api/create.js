@@ -11,7 +11,9 @@ export async function createLeague(name) {
 
     if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to create league');
+        const error = new Error(errorData.detail || 'Failed to create league');
+        error.status = response.status;
+        throw error;
     }
 
     return response.json();
@@ -35,7 +37,9 @@ export async function createTeam(leagueName, teamName, password) {
 
     if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to create team');
+        const error = new Error(errorData.detail || 'Failed to create team');
+        error.status = response.status;
+        throw error;
     }
 
     return response.json();

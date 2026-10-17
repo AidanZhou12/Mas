@@ -1,5 +1,11 @@
 const API_URL = import.meta.env.VITE_API_URL;
 
+export async function getWaiverStatus() {
+    const response = await fetch(`${API_URL}/teams/waivers/status`, { cache: 'no-store' });
+    if (!response.ok) throw new Error('Failed to fetch waiver status');
+    return response.json();
+}
+
 export async function getPosition(teamName, position) {
     const response = await fetch(`${API_URL}/teams/${teamName}`);
     if (!response.ok) {

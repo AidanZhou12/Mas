@@ -7,11 +7,14 @@ from typing import Annotated
 from schemas import TeamCreate, TeamLogin, TeamResponse, MatchupResponse
 
 from security import hash_password, verify_password
+from waivers import waiver_status
+from season import require_registration_open
 
 router = APIRouter()
 
 @router.post("", response_model=TeamResponse, status_code=status.HTTP_201_CREATED)
 def create_team(team: TeamCreate, db: Annotated[Session, Depends(get_db)]):
+    require_registration_open()
     league = db.execute(select(models.League).where(models.League.id == team.league_id)).scalar_one_or_none()
     if not league:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="League not found")
@@ -39,6 +42,11 @@ def login_team(credentials: TeamLogin, db: Annotated[Session, Depends(get_db)]):
     if team is None or not verify_password(credentials.password, team.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid team name or password")
     return team
+
+@router.get("/waivers/status")
+def get_waiver_status():
+    return waiver_status()
+
 
 @router.get("/{name}", response_model=TeamResponse)
 def get_team(name: str, db: Annotated[Session, Depends(get_db)]):
@@ -70,6 +78,11 @@ def get_current_matchup(name: str, db: Annotated[Session, Depends(get_db)]):
 
 @router.patch("/{team_id}/swap", response_model=TeamResponse)
 def swap_players(team_id: int, player1_id: int, player2_id: int, db: Annotated[Session, Depends(get_db)]):
+    if waiver_status()["locked"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Waivers are locked until Monday at 12:00 AM Central.",
+        )
     team = db.execute(select(models.Team).where(models.Team.id == team_id).options(selectinload(models.Team.players))).scalar_one_or_none()
     if not team:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Team not found")

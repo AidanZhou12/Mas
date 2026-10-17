@@ -18,16 +18,16 @@ schools = ["Alabama", "Arkansas", "Auburn", "Florida", "Georgia", "Kentucky", "L
 conferences = ["SEC", "Big 12", "ACC", "Big Ten"]
 
 for school in schools:
-    response = requests.get(url + "games/players", headers=headers, params={"year": 2026, "week": 6, "team": school})
+    response = requests.get(url + "games/players", headers=headers, params={"year": 2026, "week": 7, "team": school})
     if response.status_code == 200:
         data = response.json()
         if data == []:
-            print(f"{school} had a bye week in week 6")
+            print(f"{school} had a bye week in week 7")
             continue
         home_conference = data[0]["teams"][1]["conference"]
         away_conference = data[0]["teams"][0]["conference"]
         if home_conference not in conferences or away_conference not in conferences:
-            print(f"{school} did not play a power 4 team in week 6")
+            print(f"{school} did not play a power 4 team in week 7")
             continue
         with SessionLocal() as session:
             statement = select(models.Game).where(models.Game.cfbd_id == data[0]["id"])
@@ -35,13 +35,17 @@ for school in schools:
             if existing_game is None:
                 new_game = models.Game(
                     cfbd_id=data[0]["id"],
-                    week=6,
+                    week=7,
                     home_team=data[0]["teams"][1]["team"],
                     away_team=data[0]["teams"][0]["team"],
                     boxscore=data[0]["teams"]
                 )
                 session.add(new_game)
                 session.commit()
-                print(f"Added new game: {data[0]['teams'][0]['team']} vs {data[0]['teams'][1]['team']} (Week 6)")
+                print(f"Added new game: {data[0]['teams'][0]['team']} vs {data[0]['teams'][1]['team']}")
+            else:
+                existing_game.boxscore = data[0]["teams"]
+                session.commit()
+                print(f"Refreshed game: {data[0]['teams'][0]['team']} vs {data[0]['teams'][1]['team']}")
     else:
         raise Exception(f"Error fetching games for {school}: {response.status_code} - {response.text}")

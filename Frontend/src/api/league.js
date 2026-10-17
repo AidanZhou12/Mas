@@ -24,6 +24,10 @@ export async function getTeamByID(teamID) {
 
 export async function getMatchup(teamName) {
     const response = await fetch(`${API_URL}/teams/${teamName}/matchup`);
+    if (response.status === 404) {
+        const error = await response.json();
+        if (error.detail === 'Matchup not found for the current week') return null;
+    }
     if (!response.ok) {
         throw new Error('Failed to fetch matchup');
     }
@@ -40,57 +44,102 @@ export async function getAvailablePlayers(leagueID) {
     return data;
 }
 
-export async function getAllTeams(leagueID) {
+export async function getLeague(leagueID) {
     const response = await fetch(`${API_URL}/leagues/id/${leagueID}`);
     if (!response.ok) {
         throw new Error('Failed to fetch teams');
     }
     const data = await response.json();
-    return data.teams;
+    return data;
 }
 
-export async function getStandings(leagueID) {
-    const teams = await getAllTeams(leagueID);
-    let stats = {};
-    for (const team of teams) {
-        let info = {};
-        const teamName = team.name;
-        let wins = 0;
-        let losses = 0;
-        let points = 0.0;
-        for (const homeGame of team.home_matchups) {
-            points += homeGame.home_score;
-            if (homeGame.home_score > homeGame.away_score) {
-                wins++;
-            } else if (homeGame.home_score < homeGame.away_score) {
-                losses++;
-            }
+export async function getAllTeams(leagueID) {
+    const league = await getLeague(leagueID);
+    return league.teams;
+}
+
+export async function getStandings(leagueID, leagueData) {
+    const league = leagueData ?? await getLeague(leagueID);
+    return buildStandings(league.teams, league.current_week);
+}
+
+function compareNames(a, b) {
+    const first = a.toLowerCase();
+    const second = b.toLowerCase();
+    return first < second ? -1 : first > second ? 1 : a < b ? -1 : a > b ? 1 : 0;
+}
+
+function winPercentage(team) {
+    const games = team.wins + team.losses + team.ties;
+    return games ? (team.wins + team.ties * 0.5) / games : 0;
+}
+
+export function buildStandings(teams, currentWeek = Infinity) {
+    return teams.map(team => {
+        const record = { id: team.id, name: team.name, wins: 0, losses: 0, ties: 0, points: 0 };
+        const games = [
+            ...team.home_matchups.map(game => ({ game, scored: game.home_score, allowed: game.away_score })),
+            ...team.away_matchups.map(game => ({ game, scored: game.away_score, allowed: game.home_score })),
+        ];
+        for (const { game, scored, allowed } of games) {
+            // Only completed weeks count; future 0-0 games are not ties.
+            if (game.matchup_type !== 'regular' || game.week >= currentWeek ||
+                scored == null || allowed == null) continue;
+            record.points += scored;
+            if (scored > allowed) record.wins++;
+            else if (scored < allowed) record.losses++;
+            else record.ties++;
         }
-        for (const awayGame of team.away_matchups) {
-            points += awayGame.away_score;
-            if (awayGame.away_score > awayGame.home_score) {
-                wins++;
-            } else if (awayGame.away_score < awayGame.home_score) {
-                losses++;
-            }
-        }
-        info["wins"] = wins;
-        info["losses"] = losses;
-        info["points"] = points;
-        stats[teamName] = info;
-    }
-    return Object.entries(stats).map(([name, info]) => ({ name, ...info })).sort((a, b) =>
-        b.wins - a.wins ||
-        b.points - a.points ||
-        a.name.localeCompare(b.name, 'en')
+        record.points = Math.round(record.points * 100) / 100;
+        record.winPercentage = winPercentage(record);
+        return record;
+    }).sort((a, b) =>
+        b.winPercentage - a.winPercentage ||
+        b.points - a.points || compareNames(a.name, b.name)
     );
+}
+
+export function getFinalResults(league) {
+    const standings = buildStandings(league.teams, league.current_week);
+    const championship = league.matchups.find(game => game.matchup_type === 'championship');
+    if (!championship) return { winner: null, standings };
+    const home = standings.find(team => team.id === championship.home_team_id);
+    const away = standings.find(team => team.id === championship.away_team_id);
+    if (!home || !away) return { winner: null, standings };
+    if (championship.home_score == null || championship.away_score == null) {
+        const finalists = standings.filter(team => team.id === home.id || team.id === away.id);
+        return {
+            winner: null,
+            standings: [...finalists, ...standings.filter(team => team.id !== home.id && team.id !== away.id)],
+        };
+    }
+    // Equal championship scores also add equal season points, so regular-season
+    // totals give the same season-points tiebreaker before adding this game.
+    const homeWon = championship.home_score > championship.away_score || (
+        championship.home_score === championship.away_score && (
+            home.points > away.points ||
+            (home.points === away.points && compareNames(home.name, away.name) < 0)
+        )
+    );
+    const winner = homeWon ? home : away;
+    const runnerUp = homeWon ? away : home;
+    winner.wins += 1;
+    runnerUp.losses += 1;
+    home.points += championship.home_score;
+    away.points += championship.away_score;
+    winner.winPercentage = winPercentage(winner);
+    runnerUp.winPercentage = winPercentage(runnerUp);
+    return {
+        winner: winner.name,
+        standings: [winner, runnerUp, ...standings.filter(team => team.id !== home.id && team.id !== away.id)],
+    };
 }
 
 export async function getPoints(leagueID, playerID) {
     const response = await fetch(`${API_URL}/leagues/id/${leagueID}`);
     const league = await response.json();
     let week = league.current_week;
-    week += 5;
+    week += 6;
     const points = await fetch(`${API_URL}/teams/${week}/${playerID}/score`);
     const score = await points.json();
     return score;

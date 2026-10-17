@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { useState } from 'react';
-import { loginTeam, getCount, getDraftStatus } from '../api/login';
+import { loginTeam } from '../api/login';
+import { getLeague } from '../api/league';
 import { useNavigate } from 'react-router';
 import './pages.css';
 
@@ -20,9 +21,10 @@ function LoginPage() {
                     setError('');
                     try {
                         const team = await loginTeam(teamName, password);
-                        const teamCount = await getCount(team.league_id);
-                        const draftStatus = await getDraftStatus(team.league_id);
-                        if (draftStatus === 'completed') {
+                        const league = await getLeague(team.league_id);
+                        const teamCount = league.teams.length;
+                        const draftStatus = league.draft?.status;
+                        if (league.current_week >= 6 || draftStatus === 'completed') {
                             navigate('/league', { state: { teamName, leagueID: team.league_id } });
                         }
                         else if (draftStatus === 'started') {

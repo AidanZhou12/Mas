@@ -5,11 +5,13 @@ from database import get_db
 from typing import Annotated
 from schemas import LeagueCreate, LeagueBase, LeagueResponse, PlayerResponse
 import models
+from season import require_registration_open, registration_status
 
 router = APIRouter()
 
 @router.post("", response_model=LeagueResponse, status_code=status.HTTP_201_CREATED)
 def create_league(league: LeagueCreate, db: Annotated[Session, Depends(get_db)]):
+    require_registration_open()
     statement = select(models.League).where(models.League.name == league.name)
     existing_league = db.execute(statement).scalar_one_or_none()
     if existing_league:
@@ -26,6 +28,11 @@ def create_league(league: LeagueCreate, db: Annotated[Session, Depends(get_db)])
 def get_leagues(db: Annotated[Session, Depends(get_db)]):
     leagues = db.execute(select(models.League)).scalars().all()
     return leagues
+
+@router.get("/registration/status")
+def get_registration_status():
+    return registration_status()
+
 
 @router.get("/{name}", response_model=LeagueResponse)
 def get_league(name: str, db: Annotated[Session, Depends(get_db)]):

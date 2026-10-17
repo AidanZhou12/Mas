@@ -1,7 +1,8 @@
 import { useRef, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { getTeam, getMatchup, getTeamByID, getAvailablePlayers, getStandings, getPoints } from '../api/league';
+import { getTeam, getMatchup, getTeamByID, getAvailablePlayers, getStandings, getPoints, getLeague, getFinalResults } from '../api/league';
 import './pages.css';
+import { getWaiverStatus } from '../api/waiver';
 
 const TABS = ['Team', 'Matchup', 'Waivers', 'Standings'];
 const POSITION_ORDER = { QB: 0, RB: 1, WR: 2, TE: 3 };
@@ -20,11 +21,16 @@ function LeaguePage() {
     const [matchupLoading, setMatchupLoading] = useState(true);
     const [matchupError, setMatchupError] = useState('');
     const [allTeams, setAllTeams] = useState([]);
+    const [winner, setWinner] = useState(null);
+    const [currentWeek, setCurrentWeek] = useState(null);
+    const [waiversLocked, setWaiversLocked] = useState(null);
     const tabRefs = useRef([]);
     const { state } = useLocation();
     const navigate = useNavigate();
     const teamName = state?.teamName;
     const leagueID = state?.leagueID;
+    const finishingPlace = allTeams.findIndex(team => team.name === teamName) + 1;
+    const missedChampionship = currentWeek === 5 && !matchup && finishingPlace > 2;
     const filteredPlayers = availablePlayers.filter(player =>
         player.name.toLowerCase().includes(searchText.trim().toLowerCase()) &&
         (positionFilter === 'All' || player.position === positionFilter)
@@ -47,23 +53,64 @@ function LeaguePage() {
     }
 
     useEffect(() => {
+        let cancelled = false;
+        let timer;
+        async function refreshWaivers() {
+            window.clearTimeout(timer);
+            let delay = 60_000;
+            try {
+                const status = await getWaiverStatus();
+                if (cancelled) return;
+                setWaiversLocked(status.locked);
+                delay = Math.max(100, Math.min(delay,
+                    Date.parse(status.next_change) - Date.parse(status.server_time)));
+            } catch {
+                if (!cancelled) setWaiversLocked(null);
+            }
+            if (!cancelled) timer = window.setTimeout(refreshWaivers, delay);
+        }
+        refreshWaivers();
+        window.addEventListener('focus', refreshWaivers);
+        return () => {
+            cancelled = true;
+            window.clearTimeout(timer);
+            window.removeEventListener('focus', refreshWaivers);
+        };
+    }, []);
+
+    useEffect(() => {
         if (!teamName || !leagueID) return;
         let cancelled = false;
         async function loadLeagueData() {
             setMatchupLoading(true);
             setMatchupError('');
             try {
+                const leagueData = await getLeague(leagueID);
+                if (cancelled) return;
+                setCurrentWeek(leagueData.current_week);
+                if (leagueData.current_week >= 6) {
+                    const results = getFinalResults(leagueData);
+                    setAllTeams(results.standings);
+                    setWinner(results.winner);
+                    return;
+                }
                 const [teamRoster, availablePlayersData, matchupData, allTeamsData] = await Promise.all([
                     getTeam(teamName),
                     getAvailablePlayers(leagueID),
                     getMatchup(teamName),
-                    getStandings(leagueID),
+                    getStandings(leagueID, leagueData),
                 ]);
                 if (cancelled) return;
                 setRoster(teamRoster);
                 setAvailablePlayers(availablePlayersData);
                 setMatchup(matchupData);
                 setAllTeams(allTeamsData);
+                setCurrentWeek(leagueData.current_week);
+                if (!matchupData) {
+                    setHomeRoster([]);
+                    setAwayRoster([]);
+                    return;
+                }
                 const [homeRosterData, awayRosterData] = await Promise.all([
                     getTeamByID(matchupData.home_team_id),
                     getTeamByID(matchupData.away_team_id),
@@ -99,6 +146,27 @@ function LeaguePage() {
             <main>
                 <p>Error: Missing team name or league ID.</p>
                 <Link to="/login">Go back to login</Link>
+            </main>
+        );
+    }
+
+    if (currentWeek >= 6) {
+        return (
+            <main className="league-page has-page-navigation">
+                <Link to="/" replace state={null} className="back-button">Logout</Link>
+                {matchupLoading ? <p>Loading final standings...</p> :
+                    matchupError ? <p role="alert">{matchupError}</p> : <>
+                        <h1>{winner ? `${winner} Won` : 'Championship Result Pending'}</h1>
+                        <h2>League Standings</h2>
+                        <div className="league-roster">
+                            {allTeams.map((team, index) => (
+                                <div className="league-roster-row" key={team.id}>
+                                    <span>{index + 1}: {team.name}</span>
+                                    <span className="league-roster-school">{team.wins}-{team.losses}-{team.ties}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </>}
             </main>
         );
     }
@@ -147,10 +215,14 @@ function LeaguePage() {
                     {label === 'Matchup' && (
                         matchupLoading ? <p>Loading matchup...</p> :
                         matchupError ? <p role="alert">{matchupError}</p> :
+                        missedChampionship ? <div>
+                            <h1>You Did Not Make the Championship</h1>
+                            <h2>You Finished In {finishingPlace}{finishingPlace === 3 ? 'rd' : 'th'} Place</h2>
+                        </div> :
                         matchup ? <div className="league-matchup">
                             {[
-                                { side: 'Home', name: homeTeamName, score: matchup.home_score, players: homeRoster },
-                                { side: 'Away', name: awayTeamName, score: matchup.away_score, players: awayRoster },
+                                { side: 'Home', name: homeTeamName, score: homeRoster.reduce((total, player) => total + player.points, 0), players: homeRoster },
+                                { side: 'Away', name: awayTeamName, score: awayRoster.reduce((total, player) => total + player.points, 0), players: awayRoster },
                             ].map(team => (
                                 <section className="league-matchup-team" key={team.side} aria-label={`${team.side} team`}>
                                     <div className="league-matchup-header">
@@ -158,7 +230,7 @@ function LeaguePage() {
                                             <p>{team.side}</p>
                                             <h2>{team.name}</h2>
                                         </div>
-                                        <p className="league-matchup-score">{team.score ?? 0} <span>pts</span></p>
+                                        <p className="league-matchup-score">{team.score.toFixed(2)} <span>pts</span></p>
                                     </div>
                                     <div className="league-roster">
                                         {[...team.players].sort((a, b) =>
@@ -195,6 +267,9 @@ function LeaguePage() {
                                 />
                             </div>
                             <h2>Available Players</h2>
+                            {waiversLocked === true && (
+                                <p>Waivers are locked until Monday at 12:00 AM Central.</p>
+                            )}
                             <div className="league-waivers-table">
                                 <table aria-label="Available players">
                                     <tbody>
@@ -203,7 +278,7 @@ function LeaguePage() {
                                                 <td>{player.name}</td>
                                                 <td>{player.position}</td>
                                                 <td>{player.school}</td>
-                                                <td>
+                                                {waiversLocked === false && <td>
                                                     <button
                                                         type="button"
                                                         aria-label={`Add ${player.name}`}
@@ -213,7 +288,7 @@ function LeaguePage() {
                                                     >
                                                         Add
                                                     </button>
-                                                </td>
+                                                </td>}
                                             </tr>
                                         ))}
                                     </tbody>
@@ -226,8 +301,8 @@ function LeaguePage() {
                             {allTeams.map((team, index) => (
                                 <div className="league-roster-row" key={team.name}>
                                     <span>{index + 1}: {team.name}</span>
-                                    <span className="league-roster-school" aria-label={`Record: ${team.wins} wins, ${team.losses} losses`}>
-                                        {team.wins}-{team.losses}
+                                    <span className="league-roster-school" aria-label={`Record: ${team.wins} wins, ${team.losses} losses, ${team.ties} ties`}>
+                                        {team.wins}-{team.losses}-{team.ties}
                                     </span>
                                 </div>
                             ))}
