@@ -9,6 +9,7 @@ import models
 from database import SessionLocal, engine
 from cfbd import fetch_box_scores
 import os
+import logging
 from dotenv import load_dotenv
 from timezones import APP_TIMEZONE
 from standings import rank_regular_season
@@ -26,18 +27,21 @@ headers = {"Authorization": f"Bearer {API_KEY}"}
 
 FINAL_FANTASY_WEEK = 6
 SEASON_JOBS_END = datetime(2026, 11, 29, tzinfo=APP_TIMEZONE)
+logger = logging.getLogger("uvicorn.error")
 
 def get_scores():
     schools = ["Alabama", "Arkansas", "Auburn", "Florida", "Georgia", "Kentucky", "LSU", "Mississippi State", "Missouri", "Ole Miss", "South Carolina", "Tennessee", "Texas A&M", "Vanderbilt","Texas", "Oklahoma"]
     conferences = ["SEC", "Big 12", "ACC", "Big Ten"]
     # Fantasy week 1 corresponds to college football week 7.
     week_offset = 6
+    failed_schools = 0
     # All leagues share the same week; fetch each school only once per run.
     with SessionLocal() as session:
         week = session.execute(
             select(models.League.current_week).order_by(models.League.id).limit(1)
         ).scalar_one_or_none()
     if week is None:
+        logger.info("get_scores finished: no leagues to update.")
         return
     college_week = week + week_offset
     for school in schools:
@@ -46,6 +50,7 @@ def get_scores():
             {"year": 2026, "week": college_week, "team": school},
         )
         if data is None:
+            failed_schools += 1
             continue
         if data == []:
             continue
@@ -185,6 +190,10 @@ def get_scores():
                     matchup.home_score = round(home_total, 2)
                     matchup.away_score = round(away_total, 2)
         session.commit()
+    logger.info(
+        "get_scores finished: week=%s, matchup scores committed, failed schools=%s.",
+        week, failed_schools,
+    )
 
 def advance_week():
     with SessionLocal() as session:

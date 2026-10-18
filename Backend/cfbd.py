@@ -14,7 +14,7 @@ def fetch_box_scores(url, headers, params):
     week = params["week"]
     for attempt in range(3):
         try:
-            response = requests.get(url, headers=headers, params=params, timeout=(5, 30))
+            response = requests.get(url, headers=headers, params=params, timeout=(5, 60))
         except requests.RequestException as error:
             logger.warning("CFBD school=%s week=%s attempt=%s: %s", school, week, attempt + 1, type(error).__name__)
         else:
