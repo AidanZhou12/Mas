@@ -55,7 +55,6 @@ with SessionLocal() as session:
             )
             session.add(new_player)
             added += 1
-            print(f"Added new player: {guy['name']} ({guy['position']}) from {guy['school']}")
         else:
             changed = False
             if existing_player.name != guy["name"]:
@@ -71,4 +70,3 @@ with SessionLocal() as session:
                 updated += 1
     session.commit()
 
-print("Player sync complete \nAdded:", added, "\nUpdated:", updated)
