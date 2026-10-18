@@ -78,7 +78,9 @@ def get_scores():
                 existing_game.boxscore = data[0]["teams"]
             session.commit()
     with SessionLocal() as session:
-        command = select(models.League).options(
+        command = select(models.League).where(
+            models.League.draft.has(models.Draft.status == "completed")
+        ).options(
             selectinload(models.League.matchups)
                 .selectinload(models.Matchup.home_team)
                 .selectinload(models.Team.players),
