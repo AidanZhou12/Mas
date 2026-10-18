@@ -5,7 +5,7 @@ from database import get_db
 from typing import Annotated
 from schemas import LeagueCreate, LeagueBase, LeagueResponse, PlayerResponse
 import models
-from season import require_registration_open, registration_status
+from season import require_registration_open, registration_status, draft_eligibility
 
 router = APIRouter()
 
@@ -32,6 +32,14 @@ def get_leagues(db: Annotated[Session, Depends(get_db)]):
 @router.get("/registration/status")
 def get_registration_status():
     return registration_status()
+
+
+@router.get("/id/{id}/eligibility")
+def get_league_eligibility(id: int, db: Annotated[Session, Depends(get_db)]):
+    league = db.execute(select(models.League).where(models.League.id == id).options(selectinload(models.League.draft))).scalar_one_or_none()
+    if not league:
+        raise HTTPException(status_code=404, detail="League not found")
+    return draft_eligibility(league.draft.status if league.draft else None)
 
 
 @router.get("/{name}", response_model=LeagueResponse)

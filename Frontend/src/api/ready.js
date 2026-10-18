@@ -11,7 +11,9 @@ export async function startDraft(leagueID) {
 
     if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to start draft');
+        const error = new Error(errorData.detail || 'Failed to start draft');
+        error.status = response.status;
+        throw error;
     }
 
     return response.json();

@@ -17,8 +17,6 @@ function DraftPage() {
     const [positionFilter, setPositionFilter] = useState('All');
     const [availablePlayers, setAvailablePlayers] = useState([]);
     const [draftStatus, setDraftStatus] = useState('');
-    const [currentPick, setCurrentPick] = useState(null);
-    const [currentTurn, setCurrentTurn] = useState(null);
     const [pickingTeam, setPickingTeam] = useState(null);
 
     const [roster, setRoster] = useState([]);
@@ -58,8 +56,6 @@ function DraftPage() {
                 completed = draft.status === 'completed';
 
                 setDraftStatus(draft.status);
-                setCurrentPick(draft.current_pick);
-                setCurrentTurn(turn);
                 setPickingTeam(findPickingTeam(teams, turn));
                 setAvailablePlayers(players);
                 setRoster(roster);
@@ -89,6 +85,10 @@ function DraftPage() {
         try {
             await draftPlayer(teamName, playerID);
         } catch (err) {
+            if (err.status === 403) {
+                navigate('/season-started', { replace: true });
+                return;
+            }
             setPickError(err.message);
         } finally {
             setSubmitting(false);

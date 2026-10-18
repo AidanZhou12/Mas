@@ -1,5 +1,11 @@
 const API_URL = import.meta.env.VITE_API_URL;
 
+export async function getLeagueEligibility(leagueID) {
+    const response = await fetch(`${API_URL}/leagues/id/${leagueID}/eligibility`, { cache: 'no-store' });
+    if (!response.ok) throw new Error('Unable to check season eligibility. Please try again.');
+    return response.json();
+}
+
 export async function getTeam(teamName) {
     const response = await fetch(`${API_URL}/teams/${teamName}`);
     if (!response.ok) {

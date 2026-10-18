@@ -20,7 +20,9 @@ export async function draftPlayer(teamName, playerID) {
 
     if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to draft player');
+        const error = new Error(errorData.detail || 'Failed to draft player');
+        error.status = response.status;
+        throw error;
     }
 
     return response.json();

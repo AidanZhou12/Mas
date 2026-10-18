@@ -25,12 +25,12 @@ function App() {
       <Route path="/create" element={<RegistrationGuard><CreateLeague /></RegistrationGuard>} />
       <Route path="/join" element={<RegistrationGuard><JoinLeague /></RegistrationGuard>} />
       <Route path="/season-started" element={<SeasonStarted />} />
-      <Route path="/unready" element={<UnreadyPage />} />
-      <Route path="/ready" element={<ReadyPage />} />
-      <Route path="/enter" element={<EnterPage />} />
-      <Route path="/draft" element={<DraftPage />} />
-      <Route path="/league" element={<LeaguePage />} />
-      <Route path="/waiver" element={<WaiverPage />} />
+      <Route path="/unready" element={<RegistrationGuard checkDraft><UnreadyPage /></RegistrationGuard>} />
+      <Route path="/ready" element={<RegistrationGuard checkDraft><ReadyPage /></RegistrationGuard>} />
+      <Route path="/enter" element={<RegistrationGuard checkDraft><EnterPage /></RegistrationGuard>} />
+      <Route path="/draft" element={<RegistrationGuard checkDraft><DraftPage /></RegistrationGuard>} />
+      <Route path="/league" element={<RegistrationGuard checkDraft><LeaguePage /></RegistrationGuard>} />
+      <Route path="/waiver" element={<RegistrationGuard checkDraft><WaiverPage /></RegistrationGuard>} />
     </Routes>
     <AboutButton />
     </>

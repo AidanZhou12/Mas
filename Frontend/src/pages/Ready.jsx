@@ -22,6 +22,10 @@ function ReadyPage() {
                         navigate('/draft', { state: { teamName: state.teamName, leagueID } });
                     }
                     catch (err) {
+                        if (err.status === 403) {
+                            navigate('/season-started', { replace: true });
+                            return;
+                        }
                         setError(err.message);
                     }
                 }}>Start Draft</button>

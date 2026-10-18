@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { useState } from 'react';
 import { loginTeam } from '../api/login';
-import { getLeague } from '../api/league';
+import { getLeague, getLeagueEligibility } from '../api/league';
 import { useNavigate } from 'react-router';
 import './pages.css';
 
@@ -24,6 +24,11 @@ function LoginPage() {
                         const league = await getLeague(team.league_id);
                         const teamCount = league.teams.length;
                         const draftStatus = league.draft?.status;
+                        const eligibility = await getLeagueEligibility(team.league_id);
+                        if (eligibility.closed) {
+                            navigate('/season-started', { replace: true });
+                            return;
+                        }
                         if (league.current_week >= 6 || draftStatus === 'completed') {
                             navigate('/league', { state: { teamName, leagueID: team.league_id } });
                         }
