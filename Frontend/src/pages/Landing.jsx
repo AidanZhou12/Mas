@@ -6,9 +6,9 @@ function LandingPage() {
         <main>
             <Link to="/login" className="login-button">Login</Link>
 
-            <h1>Down The Stretch</h1>
+            <h1>Mas</h1>
 
-            <p>Welcome to Down The Stretch!</p>
+            <p>An SEC Fantasy Football App</p>
 
             <div className="landing-actions">
                 <Link to="/create" className="action-button">Create League</Link>
