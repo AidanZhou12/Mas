@@ -288,6 +288,7 @@ app = FastAPI(lifespan=lifespan)
 
 origins = [
     "http://localhost:5173",
+    "https://mas-frontend-j4w6.onrender.com"
 ]
 
 app.add_middleware(
