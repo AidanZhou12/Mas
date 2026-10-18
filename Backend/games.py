@@ -16,18 +16,19 @@ headers = {"Authorization": f"Bearer {API_KEY}"}
 
 schools = ["Alabama", "Arkansas", "Auburn", "Florida", "Georgia", "Kentucky", "LSU", "Mississippi State", "Missouri", "Ole Miss", "South Carolina", "Tennessee", "Texas A&M", "Vanderbilt","Texas", "Oklahoma"]
 conferences = ["SEC", "Big 12", "ACC", "Big Ten"]
+college_week = 9  # Fantasy week 1
 
 for school in schools:
-    response = requests.get(url + "games/players", headers=headers, params={"year": 2026, "week": 7, "team": school})
+    response = requests.get(url + "games/players", headers=headers, params={"year": 2026, "week": college_week, "team": school})
     if response.status_code == 200:
         data = response.json()
         if data == []:
-            print(f"{school} had a bye week in week 7")
+            print(f"{school} had a bye week in week {college_week}")
             continue
         home_conference = data[0]["teams"][1]["conference"]
         away_conference = data[0]["teams"][0]["conference"]
         if home_conference not in conferences or away_conference not in conferences:
-            print(f"{school} did not play a power 4 team in week 7")
+            print(f"{school} did not play a power 4 team in week {college_week}")
             continue
         with SessionLocal() as session:
             statement = select(models.Game).where(models.Game.cfbd_id == data[0]["id"])
@@ -35,7 +36,7 @@ for school in schools:
             if existing_game is None:
                 new_game = models.Game(
                     cfbd_id=data[0]["id"],
-                    week=7,
+                    week=college_week,
                     home_team=data[0]["teams"][1]["team"],
                     away_team=data[0]["teams"][0]["team"],
                     boxscore=data[0]["teams"]

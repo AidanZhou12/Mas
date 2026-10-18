@@ -44,6 +44,51 @@
   background-color: #444;
 }
 
+.about-button,
+.logout-button {
+  position: fixed;
+  right: 20px;
+  z-index: 100;
+  padding: 8px 16px;
+  border-radius: 6px;
+  background-color: #222;
+  color: white;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.about-button {
+  bottom: 20px;
+}
+
+.logout-button {
+  top: 20px;
+}
+
+.about-button:hover,
+.logout-button:hover {
+  background-color: #444;
+}
+
+.about-page {
+  padding: 64px 24px 88px;
+}
+
+.about-page .back-button {
+  position: fixed;
+  z-index: 100;
+}
+
+.about-page section {
+  max-width: 720px;
+  margin: 0 auto 28px;
+  text-align: left;
+}
+
+.about-page p + p {
+  margin-top: 12px;
+}
+
 .join-page {
     min-height: 100vh;
     display: flex;

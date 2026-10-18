@@ -153,7 +153,7 @@ function LeaguePage() {
     if (currentWeek >= 6) {
         return (
             <main className="league-page has-page-navigation">
-                <Link to="/" replace state={null} className="back-button">Logout</Link>
+                <Link to="/" replace state={null} className="logout-button">Logout</Link>
                 {matchupLoading ? <p>Loading final standings...</p> :
                     matchupError ? <p role="alert">{matchupError}</p> : <>
                         <h1>{winner ? `${winner} Won` : 'Championship Result Pending'}</h1>
@@ -173,7 +173,7 @@ function LeaguePage() {
 
     return (
         <main className="league-page has-page-navigation">
-            <Link to="/" replace state={null} className="back-button">Logout</Link>
+            <Link to="/" replace state={null} className="logout-button">Logout</Link>
             <div className="league-tabs" role="tablist" aria-label="League sections">
                 {TABS.map((label, index) => (
                     <button

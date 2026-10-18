@@ -26,14 +26,15 @@ url = "https://api.collegefootballdata.com/"
 headers = {"Authorization": f"Bearer {API_KEY}"}
 
 FINAL_FANTASY_WEEK = 6
+SEASON_JOBS_START = datetime(2026, 10, 27, tzinfo=APP_TIMEZONE)
 SEASON_JOBS_END = datetime(2026, 11, 29, tzinfo=APP_TIMEZONE)
 logger = logging.getLogger("uvicorn.error")
 
 def get_scores():
     schools = ["Alabama", "Arkansas", "Auburn", "Florida", "Georgia", "Kentucky", "LSU", "Mississippi State", "Missouri", "Ole Miss", "South Carolina", "Tennessee", "Texas A&M", "Vanderbilt","Texas", "Oklahoma"]
     conferences = ["SEC", "Big 12", "ACC", "Big Ten"]
-    # Fantasy week 1 corresponds to college football week 7.
-    week_offset = 6
+    # Fantasy week 1 corresponds to college football week 9.
+    week_offset = 8
     failed_schools = 0
     # All leagues share the same week; fetch each school only once per run.
     with SessionLocal() as session:
@@ -249,7 +250,7 @@ async def lifespan(app: FastAPI):
         get_scores,
         CronTrigger(
             day_of_week="fri,sat", minute="0,30",
-            timezone=APP_TIMEZONE, end_date=SEASON_JOBS_END,
+            timezone=APP_TIMEZONE, start_date=SEASON_JOBS_START, end_date=SEASON_JOBS_END,
         ),
         id="get_scores",
         max_instances=1,
@@ -259,7 +260,7 @@ async def lifespan(app: FastAPI):
         advance_week,
         CronTrigger(
             day_of_week="mon", hour=0, minute=0,
-            timezone=APP_TIMEZONE, end_date=SEASON_JOBS_END,
+            timezone=APP_TIMEZONE, start_date=SEASON_JOBS_START, end_date=SEASON_JOBS_END,
         ),
         id="advance_week",
         max_instances=1,
@@ -267,7 +268,10 @@ async def lifespan(app: FastAPI):
     )
     scheduler.add_job(
         set_championships,
-        CronTrigger(year=2026, month=11, day=23, hour=0, minute=0, timezone=APP_TIMEZONE),
+        CronTrigger(
+            year=2026, month=11, day=23, hour=0, minute=0,
+            timezone=APP_TIMEZONE, start_date=SEASON_JOBS_START,
+        ),
         id="set_championships",
         max_instances=1,
         coalesce=True,

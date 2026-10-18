@@ -12,10 +12,14 @@ import LeaguePage from "./pages/League";
 import WaiverPage from "./pages/Waiver";
 import SeasonStarted from "./pages/SeasonStarted";
 import RegistrationGuard from "./components/RegistrationGuard";
+import AboutButton from "./components/AboutButton";
+import AboutPage from "./pages/About";
 
 function App() {
   return (
+    <>
     <Routes>
+      <Route path="/about" element={<AboutPage />} />
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/create" element={<RegistrationGuard><CreateLeague /></RegistrationGuard>} />
@@ -28,6 +32,8 @@ function App() {
       <Route path="/league" element={<LeaguePage />} />
       <Route path="/waiver" element={<WaiverPage />} />
     </Routes>
+    <AboutButton />
+    </>
   )
 }
 
