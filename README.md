@@ -10,10 +10,18 @@ This application allows leagues of six teams to compete in a short fantasy footb
 - React frontend to fetch data from the backend and display it to the user
 
 ## How to use
-1. Gather five friends to participate with you
-2. Visit this [link](https://mas-frontend-j4w6.onrender.com) and have one person create a league for the other five to join
-3. Start the draft and populate your team
-4. Update your lineup throughout each week
+
+With the season underway, you no longer have the opportunity to create or join a league. If you wish to see the application or play around with it, you may use one of the teams in my exhibit league. You are welcome to do whatever you like, I just ask that nothing insane be done (like picking up John Mateer)
+
+| Team Name | Password |
+| --- | --- |
+| One | password |
+| Two | password |
+| Three | password |
+| Four | password |
+| Five | password |
+| Six | password |
+
 
 ## Contributors
 
