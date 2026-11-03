@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router';
 import { getTeam, getMatchup, getTeamByID, getAvailablePlayers, getStandings, getPoints, getLeague, getFinalResults } from '../api/league';
 import './pages.css';
 import { getWaiverStatus } from '../api/waiver';
@@ -8,7 +8,9 @@ const TABS = ['Team', 'Matchup', 'Waivers', 'Standings'];
 const POSITION_ORDER = { QB: 0, RB: 1, WR: 2, TE: 3 };
 
 function LeaguePage() {
-    const [activeTab, setActiveTab] = useState(0);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const selectedTab = TABS.findIndex(tab => tab.toLowerCase() === searchParams.get('tab'));
+    const activeTab = selectedTab === -1 ? 0 : selectedTab;
     const [roster, setRoster] = useState([]);
     const [availablePlayers, setAvailablePlayers] = useState([]);
     const [searchText, setSearchText] = useState('');
@@ -39,6 +41,14 @@ function LeaguePage() {
         (POSITION_ORDER[a.position] ?? 4) - (POSITION_ORDER[b.position] ?? 4)
     );
 
+    function selectTab(index) {
+        setSearchParams(previous => {
+            const next = new URLSearchParams(previous);
+            next.set('tab', TABS[index].toLowerCase());
+            return next;
+        }, { replace: true, state });
+    }
+
     function handleTabKeyDown(event, index) {
         let nextTab;
         if (event.key === 'ArrowRight') nextTab = (index + 1) % TABS.length;
@@ -48,7 +58,7 @@ function LeaguePage() {
         else return;
 
         event.preventDefault();
-        setActiveTab(nextTab);
+        selectTab(nextTab);
         tabRefs.current[nextTab].focus();
     }
 
@@ -185,7 +195,7 @@ function LeaguePage() {
                         aria-controls={`league-panel-${index}`}
                         aria-selected={activeTab === index}
                         tabIndex={activeTab === index ? 0 : -1}
-                        onClick={() => setActiveTab(index)}
+                        onClick={() => selectTab(index)}
                         onKeyDown={event => handleTabKeyDown(event, index)}
                     >
                         {label}
