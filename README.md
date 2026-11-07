@@ -25,7 +25,11 @@ With the season underway, you no longer have the opportunity to create or join a
 
 ## Contributors
 
-I invite all contributors who see a way to improve my code. Please make sure you fork, submit a pull request, and submit an issue that it solves
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push your changes
+5. Open a pull request
 
 ## Contact
 
