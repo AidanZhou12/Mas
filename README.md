@@ -11,7 +11,7 @@ This application allows leagues of six teams to compete in a short fantasy footb
 
 ## How to use
 
-With the season underway, you no longer have the opportunity to create or join a league. If you wish to see the application or play around with it, you may use one of the teams in my exhibit league. You are welcome to do whatever you like, I just ask that nothing insane be done (like picking up John Mateer)
+With the season underway, you no longer have the opportunity to create or join a league. If you wish to see the application or play around with it, you may visit the [site](https://mas-frontend-j4w6.onrender.com/) and login with one of the accounts from my exhibit league below. You are welcome to do whatever you like, I just ask that nothing insane be done (like picking up John Mateer)
 
 | Team Name | Password |
 | --- | --- |
